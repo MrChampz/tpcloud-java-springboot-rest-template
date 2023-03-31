@@ -10,7 +10,7 @@ metadata:
     - rest
     - tpcloud
 spec:
-  owner: service@example.com
+  owner: backend
   type: service
 
   parameters:

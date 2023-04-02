@@ -8,7 +8,7 @@ metadata:
   annotations:
     github.com/project-slug: ${{values.destination.owner + "/" + values.destination.repo}}
     backstage.io/techdocs-ref: dir:.
-    jenkins.io/github-folder: ${{"diebold/" + values.destination.repo}}
+    jenkins.io/job-full-name: ${{"diebold/" + values.destination.repo}}
     sonarqube.org/project-key: ${{values.component_id}}
   tags:
     - recommended

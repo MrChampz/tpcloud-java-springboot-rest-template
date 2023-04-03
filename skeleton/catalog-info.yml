@@ -1,4 +1,34 @@
 apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{values.component_id | dump}}
+  {%- if values.description %}
+  description: ${{values.description | dump}}
+  {%- endif %}
+  annotations:
+    github.com/project-slug: ${{values.destination.owner + "/" + values.destination.repo}}
+    backstage.io/techdocs-ref: dir:.
+    jenkins.io/job-full-name: ${{"diebold/" + values.destination.repo}}
+    sonarqube.org/project-key: ${{values.component_id}}
+  tags:
+    - recommended
+    - java
+    - rest
+    - openapi
+    - tpcloud
+  links:
+    - url: ${{"https://rancher.upco.cloud/dashboard/c/local/fleet/fleet.cattle.io.gitrepo/fleet-default/" + values.destination.repo}}
+      title: Rancher
+      icon: rancher
+spec:
+  type: service
+  owner: ${{values.owner | dump}}
+  lifecycle: experimental
+  system: tpcloud
+  providesApis:
+    - ${{values.component_id | dump}}
+---
+apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
   name: ${{values.component_id | dump}}

@@ -20,6 +20,12 @@ metadata:
     - url: ${{"https://rancher.upco.cloud/dashboard/c/local/fleet/fleet.cattle.io.gitrepo/fleet-default/" + values.destination.repo}}
       title: Rancher
       icon: rancher
+    - url: ${{"https://sonarqube.upco.cloud/dashboard?id=" + values.component_id}}
+      title: SonarQube
+      icon: sonarqube
+    - url: ${{"https://jenkins.upco.cloud/job/diebold/job/" + values.destination.repo}}
+      title: Jenkins
+      icon: jenkins
 spec:
   type: service
   owner: ${{values.owner | dump}}

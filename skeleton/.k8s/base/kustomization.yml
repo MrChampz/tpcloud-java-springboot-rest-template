@@ -1,0 +1,6 @@
+resources:
+  - deployment.yml
+  - service.yml
+images:
+  - name: "felpsmac/${{values.component_id}}"
+    newTag: latest

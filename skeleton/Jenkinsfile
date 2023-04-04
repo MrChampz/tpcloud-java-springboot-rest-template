@@ -37,11 +37,93 @@ pipeline {
     }
 
     stage('SonarQube analysis') {
+      agent {
+        docker {
+          image 'maven:3.9.0-eclipse-temurin-17'
+          args '-v /root/.m2:/root/.m2'
+        }
+      } 
       steps {
         script {
           def scannerHome = tool 'SonarScanner 4.8';
+
+          sh "mvn -B -DskipTests clean package"
+
           withSonarQubeEnv('Default') {
             sh "${scannerHome}/bin/sonar-scanner"
+          }
+        }
+      }
+    }
+
+    stage('Build Docker image') {
+      when { not { changeRequest() }}
+      steps {
+        script {
+          // Build the image using Dockerfile
+          def image = docker.build("felpsmac/${{values.component_id}}")
+          // Push image to the registry
+          docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+            image.push("${GIT_COMMIT}")
+            image.push("latest")
+          }
+        }
+      }
+    }
+
+    stage('Update app manifest') {
+      when { not { changeRequest() }}
+      steps {
+        dir("usr/local/bin") {
+          sh "curl -LJO https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+          sh "mv yq_linux_amd64 yq && chmod +x yq"
+        }
+
+        dir('.k8s/base') {
+          sh "yq -i \'.images[0].newTag = \"${GIT_COMMIT}\"\' kustomization.yml"
+          sh 'cat kustomization.yml'
+        }
+      }
+    }
+
+    stage('Commit updated manifest') {
+      when { not { changeRequest() }}
+      steps {
+        script {
+          sh 'git add .k8s/base/kustomization.yml'
+          sh "git commit -m 'Update app version to ${GIT_COMMIT} [skip ci]'"
+
+          withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+            sh "git push https://${USERNAME}:${PASSWORD}@github.com/diebold-xyz/${{values.component_id}}.git HEAD:main"
+          }
+        }
+      }
+    }
+
+    stage('Add application to Rancher Fleet') {
+      agent {
+        docker {
+          image 'dtzar/helm-kubectl:3.11.2'
+        }
+      }
+      steps {
+        script {
+          dir("usr/local/bin") {
+            sh "curl -LJO https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
+            sh "mv yq_linux_amd64 yq && chmod +x yq"
+          }
+
+          configFileProvider([configFile(
+            fileId: 'rancher-fleet-repo-template',
+            targetLocation: './gitrepo.yml'
+          )]) {
+            def repoName = GIT_URL.tokenize('/.')[-2]
+            withKubeConfig([credentialsId: 'rancher-kubeconfig']) {
+              sh "yq -i \'.metadata.name = \"${repoName}\"\' gitrepo.yml"
+              sh "yq -i \'.spec.repo = \"${GIT_URL}\"\' gitrepo.yml"
+
+              sh 'kubectl apply -f gitrepo.yml --insecure-skip-tls-verify'
+            }
           }
         }
       }

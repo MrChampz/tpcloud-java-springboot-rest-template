@@ -14,7 +14,9 @@ spec:
     spec:
       containers:
         - name: app
-          image: "felpsmac/${{values.component_id}}:latest"
+          image: "ghcr.io/diebold-xyz/${{values.component_id}}:latest"
           ports:
             - name: web
               containerPort: ${{values.http_port}}
+      imagePullSecrets:
+        - name: dockerconfigjson-github-com

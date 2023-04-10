@@ -1,5 +1,7 @@
 FROM maven:3.9.0-eclipse-temurin-17 as builder
 
+LABEL org.opencontainers.image.source https://github.com/diebold-xyz/${{values.component_id}}
+
 COPY . .
 
 RUN mvn -B -DskipTests clean package

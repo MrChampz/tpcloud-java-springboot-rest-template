@@ -61,9 +61,9 @@ pipeline {
       steps {
         script {
           // Build the image using Dockerfile
-          def image = docker.build("felpsmac/${{values.component_id}}")
+          def image = docker.build("ghcr.io/diebold-xyz/${{values.component_id}}")
           // Push image to the registry
-          docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+          docker.withRegistry('https://ghcr.io', 'github-packages-credentials') {
             image.push("${GIT_COMMIT}")
             image.push("latest")
           }
@@ -74,13 +74,13 @@ pipeline {
     stage('Update app manifest') {
       when { not { changeRequest() }}
       steps {
-        dir("usr/local/bin") {
+        dir("manifests/base") {
           sh "curl -LJO https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64"
           sh "mv yq_linux_amd64 yq && chmod +x yq"
         }
 
-        dir('.k8s/base') {
-          sh "yq -i \'.images[0].newTag = \"${GIT_COMMIT}\"\' kustomization.yml"
+        dir('manifests/base') {
+          sh "./yq -i \'.images[0].newTag = \"${GIT_COMMIT}\"\' kustomization.yml"
           sh 'cat kustomization.yml'
         }
       }
@@ -90,7 +90,7 @@ pipeline {
       when { not { changeRequest() }}
       steps {
         script {
-          sh 'git add .k8s/base/kustomization.yml'
+          sh 'git add manifests/base/kustomization.yml'
           sh "git commit -m 'Update app version to ${GIT_COMMIT} [skip ci]'"
 
           withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
